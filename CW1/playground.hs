@@ -17,3 +17,17 @@ next branch graph = map (\x -> x : branch) (expandNode graph $ head branch)
   where expandNode graph node = [idx | (idx,val) <- zip [0..] (take numNodes $ drop (node*numNodes) graph), val /= 0]
 checkArrival :: Int -> Int -> Bool
 checkArrival dest curr = dest == curr
+
+-- Breadth first search takes : GRAPH | DESTINATION NODE | NEXT FUNC | SEARCH AGENDA | VISITED NODES ||
+
+breadthFirstSearch :: Graph -> Node -> (Branch -> Graph -> [Branch]) -> [Branch] -> [Node] -> Maybe Branch
+breadthFirstSearch graph dest nex agenda visited
+{-| ALGORITHM:
+Check if HEAD of any branch is DEST - use checkArrival
+If so then return that branch - Use filter with guards?
+Otherwise recurse with:  {nex-expanded branches whose HEAD is not in VISITED} and {VISITED including all the HEADS of the new branches}
+|-}
+  | length foundNodes /= 0 = head newNodes
+  | otherwise = breadthFirstSearch graph dest nex () ()
+  where foundNodes = filter (\x -> checkArrival . dest $ head x) agenda
+map nex (filter (\x -> not $ elem (head x) visited) agenda)
