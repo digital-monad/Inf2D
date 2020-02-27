@@ -13,7 +13,8 @@
 type Node = Int
 type Branch = [Int]
 type Graph = [Int]
-
+numNodes :: Int
+numNodes = 5
 -- [0,1,1,0,0,0,0,0,1,0,0,1,0,1,0,0,0,0,0,1,0,0,0,0,0]
 
 --next :: Branch -> Graph -> [Branch]
@@ -25,7 +26,6 @@ nexte :: Branch -> Graph -> [Branch]
 --nexte branch graph = [x : branch | x <- expandNode (head branch) graph]
 nexte branch graph = map (\x -> x : branch) (expandNode graph $ head branch)
   where expandNode graph node = [idx | (idx,val) <- zip [0..] (take numNodes $ drop (node*numNodes) graph), val /= 0]
-        numNodes = 5
 
 checkArrival :: Node -> Node -> Bool
 checkArrival dest curr = dest == curr
@@ -44,3 +44,16 @@ Otherwise recurse with:  {nex-expanded branches whose HEAD is not in VISITED} an
   where foundNodes = filter (\x -> checkArrival dest (head x)) agenda
         newAgenda = foldl (++) [] [nex b graph | b <- (filter (\x -> not $ elem (head x) visited) agenda)]
         newVisited = visited ++ [head x | x <- agenda]
+
+dfs :: Graph -> Node -> (Branch -> Graph -> [Branch]) -> [Branch] -> Int -> [Node] -> Branch
+dfs graph dest nex agenda limit visited
+  | checkArrival dest (head (head agenda)) = head agenda -- First check whether node is found
+  | length (head agenda) == limit+1 = dfs graph dest nex (tail agenda) limit ((head (head agenda)) : visited)
+  | otherwise = dfs graph dest nex ((nex (head agenda) graph) ++ (tail agenda)) limit ((head (head agenda)) : visited)
+
+getHr :: [Int] -> Node -> Int
+getHr hrList n = hrList!!n
+
+cost :: Graph -> Branch -> Int
+-- graph!!(First Node * numNodes + Second Node)
+cost graph branch = sum (map (\(na,nb) -> graph!!(na * numNodes + nb)) (zip (reverse branch) (tail (reverse branch))))
