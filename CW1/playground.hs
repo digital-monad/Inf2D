@@ -11,10 +11,9 @@
 --out :: [Int] -> [Int] -> [[Int]]
 --out branch graph = [findIdx (findRow n graph)| n <- branch]
 
-next :: Branch -> Graph -> [Branch] 
---next branch graph = [x : branch | x <- expandNode (head branch) graph] -- List Comp
-next branch graph = map (\x -> x : branch) (expandNode (head branch) graph) -- Higher order
-  where expandNode node graph = [idx | (idx,val) <- zip [0..] (take numNodes (drop (node*numNodes) graph)), val /= 0]
-
+next :: Branch -> Graph -> [Branch]
+--next branch graph = [x : branch | x <- expandNode (head branch) graph]
+next branch graph = map (\x -> x : branch) (expandNode graph $ head branch)
+  where expandNode graph node = [idx | (idx,val) <- zip [0..] (take numNodes $ drop (node*numNodes) graph), val /= 0]
 checkArrival :: Int -> Int -> Bool
 checkArrival dest curr = dest == curr
