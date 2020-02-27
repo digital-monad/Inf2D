@@ -10,24 +10,37 @@
 
 --out :: [Int] -> [Int] -> [[Int]]
 --out branch graph = [findIdx (findRow n graph)| n <- branch]
+type Node = Int
+type Branch = [Int]
+type Graph = [Int]
 
-next :: Branch -> Graph -> [Branch]
---next branch graph = [x : branch | x <- expandNode (head branch) graph]
-next branch graph = map (\x -> x : branch) (expandNode graph $ head branch)
+-- [0,1,1,0,0,0,0,0,1,0,0,1,0,1,0,0,0,0,0,1,0,0,0,0,0]
+
+--next :: Branch -> Graph -> [Branch]
+--next branch graph = foldl (++) [] (map (expandNode graph) branch)
+--  where expandNode graph node = [[idx,node] | (idx,val) <- zip [0..] (take numNodes (drop (node*numNodes) graph)), val /= 0]
+--        numNodes = 5 -- Not necessary in final implemention - numNodes is given
+
+nexte :: Branch -> Graph -> [Branch]
+--nexte branch graph = [x : branch | x <- expandNode (head branch) graph]
+nexte branch graph = map (\x -> x : branch) (expandNode graph $ head branch)
   where expandNode graph node = [idx | (idx,val) <- zip [0..] (take numNodes $ drop (node*numNodes) graph), val /= 0]
-checkArrival :: Int -> Int -> Bool
+        numNodes = 5
+
+checkArrival :: Node -> Node -> Bool
 checkArrival dest curr = dest == curr
 
 -- Breadth first search takes : GRAPH | DESTINATION NODE | NEXT FUNC | SEARCH AGENDA | VISITED NODES ||
 
-breadthFirstSearch :: Graph -> Node -> (Branch -> Graph -> [Branch]) -> [Branch] -> [Node] -> Maybe Branch
+breadthFirstSearch :: Graph -> Node -> (Branch -> Graph -> [Branch]) -> [Branch] -> [Node] -> Branch
 breadthFirstSearch graph dest nex agenda visited
 {-| ALGORITHM:
 Check if HEAD of any branch is DEST - use checkArrival
 If so then return that branch - Use filter with guards?
 Otherwise recurse with:  {nex-expanded branches whose HEAD is not in VISITED} and {VISITED including all the HEADS of the new branches}
 |-}
-  | length foundNodes /= 0 = head newNodes
-  | otherwise = breadthFirstSearch graph dest nex () ()
-  where foundNodes = filter (\x -> checkArrival . dest $ head x) agenda
-map nex (filter (\x -> not $ elem (head x) visited) agenda)
+  | length foundNodes /= 0 = head foundNodes
+  | otherwise = breadthFirstSearch graph dest nex newAgenda newVisited
+  where foundNodes = filter (\x -> checkArrival dest (head x)) agenda
+        newAgenda = foldl (++) [] [nex b graph | b <- (filter (\x -> not $ elem (head x) visited) agenda)]
+        newVisited = visited ++ [head x | x <- agenda]
