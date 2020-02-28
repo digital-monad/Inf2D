@@ -1,3 +1,4 @@
+import Data.List
 --findIdx :: [Int] -> Int -> [[Int]]
 --findIdx x node = [[idx,node] | (idx,val) <- zip [0..] x, val /= 0]
 
@@ -39,6 +40,7 @@ Check if HEAD of any branch is DEST - use checkArrival
 If so then return that branch - Use filter with guards?
 Otherwise recurse with:  {nex-expanded branches whose HEAD is not in VISITED} and {VISITED including all the HEADS of the new branches}
 |-}
+
   | length foundNodes /= 0 = head foundNodes
   | otherwise = breadthFirstSearch graph dest nex newAgenda newVisited
   where foundNodes = filter (\x -> checkArrival dest (head x)) agenda
@@ -55,5 +57,10 @@ getHr :: [Int] -> Node -> Int
 getHr hrList n = hrList!!n
 
 cost :: Graph -> Branch -> Int
--- graph!!(First Node * numNodes + Second Node)
 cost graph branch = sum (map (\(na,nb) -> graph!!(na * numNodes + nb)) (zip (reverse branch) (tail (reverse branch))))
+
+aStarSearch :: Graph -> Node -> (Branch -> Graph -> [Branch]) -> ([Int] -> Node -> Int) -> [Int] -> (Graph -> Branch -> Int) -> [Branch] -> [Node] -> Branch
+aStarSearch graph dest nex hr hrList cot agenda visited
+  | checkArrival dest (head (head agenda)) = head agenda -- First check whether node is found
+  | otherwise = aStarSearch graph dest nex hr hrList cot [snd nextNode] ((head (head agenda)) : visited)
+  where nextNode = head (sort (zip (map (\x -> hr hrList (head x) + cost graph x) (nex (head agenda) graph)) (nex (head agenda) graph)))
