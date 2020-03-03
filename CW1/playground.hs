@@ -68,3 +68,44 @@ aStarSearch graph dest nex hr hrList cot (a:genda) visited
   where nextNode
           | null (nex a graph) = (0,[])
           | otherwise = head . sort $ zip (map (\x -> hr hrList (head x) + cot graph x) (nex a graph)) (nex a graph)
+
+-- Games People Play
+type Game = [Int]
+type Cell = (Int,Int)
+data Role = MAX | MIN
+
+switch :: Role -> Role
+switch r
+  | r == MAX = MIN
+  | otherwise = MAX
+
+eval :: Game -> Int
+eval game
+  --| (not . terminal) game = ?
+  | checkWin game MAX = 1
+  | checkWin game MIN = -1
+  | otherwise = 0
+
+minimax :: Role -> Game -> Int
+minimax player board
+  | terminal board -- Reached the end (Use eval) eval board
+  | player == MAX -- Find the max of the childs' values maximum map minimax movesAndTurns board switch player
+  | payer == MIN -- Find the min of the childs' values minimum map minimax movesAndTurns board switch player
+  -- movesAndTurns returns [Game]
+
+alphabeta :: Role -> Game -> Int -> Int -> Int
+alphabeta player board alpha beta
+  | player == MAX = (maximum . phiMax) movesAndTurns alpha beta
+  | otherwise = (minimum . phiMin) movesAndTurns alpha beta
+
+phiMax :: [Game] -> Int -> Int -> [Int]
+phiMax (c:hildren) alpha beta
+  | beta > alpha = nodeVal : phiMax (max alpha nodeVal) beta hildren
+  | otherwise = []
+  where nodeVal = alphabeta MIN c alpha beta
+
+phiMin :: [Game] -> Int -> Int -> [Int]
+phiMin (c:hildren) alpha beta
+  | beta > alpha = nodeVal : phiMax alpha (min beta nodeVal) hildren
+  | otherwise = []
+  where nodeVal = alphabeta MAX c alpha beta
