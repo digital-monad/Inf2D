@@ -50,8 +50,6 @@ type Node = Int
 type Branch = [Node]
 type Graph= [Node]
 
-numNodes::Int
-numNodes = 5
 
 
 
@@ -63,7 +61,7 @@ numNodes = 5
 -- This implementation of next function does not backtrace branches.
 next::Branch -> Graph ->  [Branch]
 next branch graph = map (\x -> x : branch) (expandNode graph $ head branch)
-  where expandNode graph node = [idx | (idx,val) <- zip [0..] (take numNodes $ drop (node*numNodes) graph), val /= 0]
+  where expandNode graph node = [idx | (idx,val) <- zip [0..] (take (ceiling . sqrt . fromIntegral . length $ graph) $ drop (node*(ceiling . sqrt . fromIntegral . length $ graph)) graph), val /= 0]
        
 
 
@@ -74,7 +72,7 @@ checkArrival destination curNode = destination == curNode
 
 
 explored::Node-> [Node] ->Bool
-explored point exploredList = undefined
+explored point exploredList = elem point exploredList
 
 -- Section 3 Uniformed Search
 -- | Breadth-First Search
@@ -114,7 +112,7 @@ depthLimitedSearch graph dest nex (a:genda) limit visited
 -- | The cost function calculates the current cost of a trace. The cost for a single transition is given in the adjacency matrix.
 -- The cost of a whole trace is the sum of all relevant transition costs.
 cost :: Graph ->Branch  -> Int
-cost graph branch = sum (map (\(na,nb) -> graph!!(na * numNodes + nb)) (zip (reverse branch) ((tail . reverse) branch)))
+cost graph branch = sum (map (\(na,nb) -> graph!!(na * (ceiling . sqrt . fromIntegral . length $ graph) + nb)) (zip (reverse branch) ((tail . reverse) branch)))
 
     
 -- | The getHr function reads the heuristic for a node from a given heuristic table.
@@ -142,8 +140,9 @@ aStarSearch::Graph->Node->(Branch->Graph -> [Branch])->([Int]->Node->Int)->[Int]
 aStarSearch _ _ _ _ _ _ [] _ = Nothing
 aStarSearch graph dest nex hr hrList cot (a:genda) visited
   | checkArrival dest $ head a = Just a
-  | otherwise = aStarSearch graph dest nex hr hrList cot newAgenda (head a : visited)
-  where newAgenda = filter (\x -> not (elem (head x) visited)) ((nex (snd (head (sort $ zip (map (\x -> hr hrList (head x) + cot graph x) (a:genda)) (a:genda)))) graph) ++ (a:genda))
+  | otherwise = aStarSearch graph dest nex hr hrList cot newAgenda (head newlyExpanded : visited)
+  where newAgenda = filter (\x -> not (elem (head x) visited)) ((nex newlyExpanded graph) ++ (a:genda))
+        newlyExpanded = snd (head (sort $ zip (map (\x -> hr hrList (head x) + cot graph x) (a:genda)) (a:genda)))
   
 
 {--aStarSearch graph dest nex hr hrList cot agenda visited
