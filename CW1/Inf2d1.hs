@@ -98,9 +98,9 @@ depthLimitedSearch::Graph ->Node->(Branch ->Graph-> [Branch])->[Branch]-> Int->[
 depthLimitedSearch _ _ _ [] _ _ = Nothing
 depthLimitedSearch graph dest nex (a:genda) limit visited
   | checkArrival dest $ head a = Just a -- First check whether node is found
-  | length a == limit+1 = depthLimitedSearch graph dest nex genda limit []
+  | length a == limit+1 = depthLimitedSearch graph dest nex genda limit (tail $ head genda)
   | otherwise = depthLimitedSearch graph dest nex newAgenda limit (head a : visited)
-  where newAgenda = filter (\x -> not (elem (head x) visited)) ((nex a graph)) ++ genda
+  where newAgenda = filter (\x -> not $ elem (head x) (head a :visited)) ((nex a graph)) ++ genda
 
 -- [0,1,1,0,0, 0,0,1,0,0, 0,0,0,1,0, 0,0,0,0,1, 0,0,0,0,0] 0 4 3
 
@@ -126,33 +126,14 @@ getHr hrTable node = hrTable!!node
 ---- and a combination of the cost and heuristic functions to determine the order in which nodes are searched.
 ---- Nodes with a lower heuristic value should be searched before nodes with a higher heuristic value.
 
-{--aStarSearch::Graph->Node->(Branch->Graph -> [Branch])->([Int]->Node->Int)->[Int]->(Graph->Branch->Int)->[Branch]-> [Node]-> Maybe Branch
-aStarSearch _ _ _ _ _ _ [[]] _ = Nothing
-aStarSearch graph dest nex hr hrList cot (a:genda) visited
-  | checkArrival dest $ head a = Just a -- First check whether node is found
-  | otherwise = aStarSearch graph dest nex hr hrList cot [snd nextNode] (head a : visited)
-  where nextNode
-          | null (nex a graph) = (0,[])
-          | otherwise = head . sort $ zip (map (\x -> hr hrList (head x) + cot graph x) (nex a graph)) (nex a graph)
-
---}
 aStarSearch::Graph->Node->(Branch->Graph -> [Branch])->([Int]->Node->Int)->[Int]->(Graph->Branch->Int)->[Branch]-> [Node]-> Maybe Branch
 aStarSearch _ _ _ _ _ _ [] _ = Nothing
 aStarSearch graph dest nex hr hrList cot (a:genda) visited
-  | checkArrival dest $ head a = Just a
-  | otherwise = aStarSearch graph dest nex hr hrList cot newAgenda (head newlyExpanded : visited)
-  where newAgenda = filter (\x -> not (elem (head x) visited)) ((nex newlyExpanded graph) ++ (a:genda))
-        newlyExpanded = snd (head (sort $ zip (map (\x -> hr hrList (head x) + cot graph x) (a:genda)) (a:genda)))
-  
+  | checkArrival dest $ (head $ head sortedBranches) = Just (head sortedBranches)
+  | otherwise = aStarSearch graph dest nex hr hrList cot newAgenda (head (head sortedBranches) : visited)
+  where newAgenda = filter (\x -> not $ elem (head x) (head (head sortedBranches) : visited)) (nex (head sortedBranches) graph) ++ tail sortedBranches
+        sortedBranches = map snd $ sort $ zip (map (\x -> hr hrList (head x) + cot graph x) (a:genda)) (a:genda)
 
-{--aStarSearch graph dest nex hr hrList cot agenda visited
-  | null $ filter (\x -> not $ checkArrival dest (head x)) agenda = snd pickBranch -- All branches have arrived at the destination
-  | otherwise = aStarSearch graph dest nex hr hrList cot newAgenda (visited) -- Continue mapping
-  where pickBranch
-        | null agenda = (0,[])
-        | otherwise = head . sort $ zip (map (\x -> hr hrList (head x) + cot graph x) agenda) agenda
-        newAgenda = foldl (++) [] [if checkArrival dest (head b) then [b] else next b graph | b <- agenda, not (elem (head b) visited)]
---}
 
 -- | Section 5: Games
 -- See ConnectFourWithTwist.hs for more detail on  functions that might be helpful for your implementation. 
