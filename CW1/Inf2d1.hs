@@ -50,6 +50,8 @@ type Node = Int
 type Branch = [Node]
 type Graph= [Node]
 
+numNodes::Int
+numNodes = 10
 
 
 
@@ -61,7 +63,7 @@ type Graph= [Node]
 -- This implementation of next function does not backtrace branches.
 next::Branch -> Graph ->  [Branch]
 next branch graph = map (\x -> x : branch) (expandNode graph $ head branch)
-  where expandNode graph node = [idx | (idx,val) <- zip [0..] (take (ceiling . sqrt . fromIntegral . length $ graph) $ drop (node*(ceiling . sqrt . fromIntegral . length $ graph)) graph), val /= 0]
+  where expandNode graph node = [idx | (idx,val) <- zip [0..] (take numNodes $ drop (node*numNodes) graph), val /= 0]
        
 
 
@@ -72,7 +74,7 @@ checkArrival destination curNode = destination == curNode
 
 
 explored::Node-> [Node] ->Bool
-explored point exploredList = elem point exploredList
+explored point exploredList = undefined
 
 -- Section 3 Uniformed Search
 -- | Breadth-First Search
@@ -100,9 +102,8 @@ depthLimitedSearch graph dest nex (a:genda) limit visited
   | checkArrival dest $ head a = Just a -- First check whether node is found
   | length a == limit+1 = depthLimitedSearch graph dest nex genda limit (tail $ head genda)
   | otherwise = depthLimitedSearch graph dest nex newAgenda limit (head a : visited)
-  where newAgenda = filter (\x -> not $ elem (head x) (head a :visited)) ((nex a graph)) ++ genda
+  where newAgenda = (filter (\x -> not $ elem (head x) (head a :visited)) ((nex a graph))) ++ genda
 
--- [0,1,1,0,0, 0,0,1,0,0, 0,0,0,1,0, 0,0,0,0,1, 0,0,0,0,0] 0 4 3
 
 -- | Section 4: Informed search
 
@@ -112,7 +113,7 @@ depthLimitedSearch graph dest nex (a:genda) limit visited
 -- | The cost function calculates the current cost of a trace. The cost for a single transition is given in the adjacency matrix.
 -- The cost of a whole trace is the sum of all relevant transition costs.
 cost :: Graph ->Branch  -> Int
-cost graph branch = sum (map (\(na,nb) -> graph!!(na * (ceiling . sqrt . fromIntegral . length $ graph) + nb)) (zip (reverse branch) ((tail . reverse) branch)))
+cost graph branch = sum (map (\(na,nb) -> graph!!(na * numNodes + nb)) (zip (reverse branch) ((tail . reverse) branch)))
 
     
 -- | The getHr function reads the heuristic for a node from a given heuristic table.
@@ -126,14 +127,40 @@ getHr hrTable node = hrTable!!node
 ---- and a combination of the cost and heuristic functions to determine the order in which nodes are searched.
 ---- Nodes with a lower heuristic value should be searched before nodes with a higher heuristic value.
 
+{--aStarSearch::Graph->Node->(Branch->Graph -> [Branch])->([Int]->Node->Int)->[Int]->(Graph->Branch->Int)->[Branch]-> [Node]-> Maybe Branch
+aStarSearch _ _ _ _ _ _ [[]] _ = Nothing
+aStarSearch graph dest nex hr hrList cot (a:genda) visited
+  | checkArrival dest $ head a = Just a -- First check whether node is found
+  | otherwise = aStarSearch graph dest nex hr hrList cot [snd nextNode] (head a : visited)
+  where nextNode
+          | null (nex a graph) = (0,[])
+          | otherwise = head . sort $ zip (map (\x -> hr hrList (head x) + cot graph x) (nex a graph)) (nex a graph)
+
+--}
 aStarSearch::Graph->Node->(Branch->Graph -> [Branch])->([Int]->Node->Int)->[Int]->(Graph->Branch->Int)->[Branch]-> [Node]-> Maybe Branch
 aStarSearch _ _ _ _ _ _ [] _ = Nothing
 aStarSearch graph dest nex hr hrList cot (a:genda) visited
-  | checkArrival dest $ (head $ head sortedBranches) = Just (head sortedBranches)
-  | otherwise = aStarSearch graph dest nex hr hrList cot newAgenda (head (head sortedBranches) : visited)
-  where newAgenda = filter (\x -> not $ elem (head x) (head (head sortedBranches) : visited)) (nex (head sortedBranches) graph) ++ tail sortedBranches
-        sortedBranches = map snd $ sort $ zip (map (\x -> hr hrList (head x) + cot graph x) (a:genda)) (a:genda)
+  | checkArrival dest $ head a = Just a
+  | otherwise = aStarSearch graph dest nex hr hrList cot newAgenda (head a : visited)
+  where newAgenda = filter (\x -> not (elem (head x) visited)) ((nex (snd (head (sort $ zip (map (\x -> hr hrList (head x) + cot graph x) (a:genda)) (a:genda)))) graph) ++ (a:genda))
+  
 
+{--aStarSearch graph dest nex hr hrList cot agenda visited
+  | null $ filter (\x -> not $ checkArrival dest (head x)) agenda = snd pickBranch -- All branches have arrived at the destination
+  | otherwise = aStarSearch graph dest nex hr hrList cot newAgenda (visited) -- Continue mapping
+  where pickBranch
+        | null agenda = (0,[])
+        | otherwise = head . sort $ zip (map (\x -> hr hrList (head x) + cot graph x) agenda) agenda
+        newAgenda = foldl (++) [] [if checkArrival dest (head b) then [b] else next b graph | b <- agenda, not (elem (head b) visited)]
+--}
+
+aStarSearch'::Graph->Node->(Branch->Graph -> [Branch])->([Int]->Node->Int)->[Int]->(Graph->Branch->Int)->[Branch]-> [Node]-> Maybe Branch
+aStarSearch' _ _ _ _ _ _ [] _ = Nothing
+aStarSearch' graph dest nex hr hrList cot (a:genda) visited -- Fix Visited Nodes
+  | checkArrival dest $ (head (head sortedBranches)) = Just (head sortedBranches)
+  | otherwise = aStarSearch' graph dest nex hr hrList cot newAgenda (head (head sortedBranches) : visited)
+  where newAgenda = filter (\x -> not (elem (head x) (head (head sortedBranches) : visited))) (nex (head sortedBranches) graph) ++ tail sortedBranches
+        sortedBranches = map snd $ sort $ zip (map (\x -> hr hrList (head x) + cot graph x) (a:genda)) (a:genda)
 
 -- | Section 5: Games
 -- See ConnectFourWithTwist.hs for more detail on  functions that might be helpful for your implementation. 
@@ -154,7 +181,7 @@ eval board
 -- | The alphabeta function should return the minimax value using alphabeta pruning.
 -- The eval function should be used to get the value of a terminal state. 
 alphabeta:: Role -> Game -> Int
-alphabeta  player game = alphabeta' player game (-2) 2
+alphabeta  player game = ab player game (-2) 2
 
 -- | OPTIONAL!
 -- You can try implementing this as a test for yourself or if you find alphabeta pruning too hard.
@@ -191,3 +218,32 @@ phiMin (c:hildren) alpha beta
   | beta > alpha = nodeVal : phiMin hildren alpha (min beta nodeVal)
   | otherwise = []
   where nodeVal = alphabeta' humanPlayer c alpha beta
+
+
+ab :: Role -> Game -> Int -> Int -> Int
+ab player board alpha beta
+  | terminal board = eval board
+  | player == humanPlayer = pMax (movesAndTurns board humanPlayer) alpha beta (-2) -- MAX Player
+  | player == compPlayer = pMin (movesAndTurns board compPlayer) alpha beta 2 -- MIN Player
+
+pMax :: [Game] -> Int -> Int -> Int -> Int
+pMax [] _ _ v = v
+pMax (c:hildren) alpha beta v
+  | newV >= beta = newV
+  | otherwise = pMax hildren (max alpha newV) beta newV
+  where newV = max v nodeVal -- Max of the children so far
+        nodeVal = ab compPlayer c alpha beta
+
+pMin :: [Game] -> Int -> Int -> Int -> Int
+pMin [] _ _ v = v
+pMin (c:hildren) alpha beta v
+  | newV <= alpha = newV
+  | otherwise = pMin hildren alpha (min beta newV) newV
+  where newV = min v nodeVal -- Min of the children so far
+        nodeVal = ab humanPlayer c alpha beta
+  
+  --minimax':: Role -> Game -> Int
+  --minimax' player board
+  --  | terminal board = eval board
+  --  | player == humanPlayer = pMax (movesAndTurns board compPlayer) 
+  --  | player == compPlayer = 
